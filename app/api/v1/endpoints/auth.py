@@ -16,11 +16,21 @@ from app.schemas.auth import Token, UserCreate, UserResponse
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
+@router.post(
+    "/register",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def register_user(
+    user_in: UserCreate,
+    db: AsyncSession = Depends(get_db),
+):
     existing_user = await UserRepository.get_by_username(db, user_in.username)
     if existing_user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already registered")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already registered",
+        )
 
     return await UserRepository.create(
         db,
