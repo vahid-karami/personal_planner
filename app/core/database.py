@@ -1,30 +1,31 @@
 from collections.abc import AsyncGenerator
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
+from sqlalchemy import MetaData
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
 from app.core.config import settings
 
-# Create async engine
-engine = create_async_engine(
-    settings.DATABASE_URL, echo=settings.DEBUG, future=True
-)
+# This dictionary tells SQLAlchemy exactly how to name constraints automatically
+NAMING_CONVENTION = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s"
+}
 
-# Async session factory
+metadata = MetaData(naming_convention=NAMING_CONVENTION)
+
+engine = create_async_engine(settings.DATABASE_URL, echo=settings.DEBUG, future=True)
+
 AsyncSessionLocal = async_sessionmaker(
     bind=engine, class_=AsyncSession, expire_on_commit=False
 )
 
-
-# Declarative base class for all SQLAlchemy models
+# Attach the metadata with the naming convention to our Base
 class Base(DeclarativeBase):
-    pass
+    metadata = metadata
 
-
-# Dependency for FastAPI endpoints to get a DB session
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         try:
