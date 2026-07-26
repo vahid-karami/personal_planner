@@ -10,8 +10,10 @@ from app.schemas.task import TaskCreate, TaskUpdate
 class TaskRepository:
 
     @staticmethod
-    async def get_by_id(db: AsyncSession, task_id: int) -> Task | None:
-        result = await db.execute(select(Task).where(Task.id == task_id))
+    async def get_by_id(db: AsyncSession, task_id: int, owner_id: int) -> Task | None:
+        result = await db.execute(
+            select(Task).where(Task.id == task_id, Task.owner_id == owner_id)
+        )
         return result.scalars().first()
 
     @staticmethod
@@ -24,8 +26,12 @@ class TaskRepository:
         due_date_from: datetime | None = None,
         due_date_to: datetime | None = None,
         q: str | None = None,
+        owner_id: int | None = None,
     ) -> list[Task]:
         query = select(Task)
+
+        if owner_id is not None:
+            query = query.filter(Task.owner_id == owner_id)
 
         if is_completed is not None:
             query = query.filter(Task.is_completed == is_completed)
@@ -52,8 +58,8 @@ class TaskRepository:
         return result.scalars().all()
 
     @staticmethod
-    async def create(db: AsyncSession, task_in: TaskCreate) -> Task:
-        db_task = Task(**task_in.model_dump())
+    async def create(db: AsyncSession, task_in: TaskCreate, owner_id: int) -> Task:
+        db_task = Task(**task_in.model_dump(), owner_id=owner_id)
         db.add(db_task)
         await db.commit()
         await db.refresh(db_task)
